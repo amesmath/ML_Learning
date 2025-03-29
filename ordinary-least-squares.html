@@ -11,8 +11,7 @@
 
     b = average(Y) - (m * average(X))
 
-
-    and in our example below our x is size and our y is price
+    (Here, x = size in sqft, y = price in thousands of dollars)
   -->
   <meta charset="UTF-8">
   <title>Housing Data Plot with Ticks and Axes</title>
@@ -23,15 +22,27 @@
       margin: 20px auto; 
       border: 1px solid #555;
     }
+    .input-container {
+      text-align: center;
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
   <canvas id="plotCanvas" width="700" height="500"></canvas>
+
+  <!-- The text input and button for entering square footage and estimating price -->
+  <div class="input-container">
+    <input type="number" id="sqftInput" placeholder="Enter sqft" />
+    <button id="estimateButton">Estimate Price</button>
+    <p id="estimateOutput"></p>
+  </div>
+
   <script>
     const canvas = document.getElementById('plotCanvas');
     const ctx = canvas.getContext('2d');
 
-    // Housing data: size in sqft (x) and price (y)
+    // Housing data: size in sqft (x) and price in thousands of dollars (y)
     let housingData = [
       { size: 2104, price: 400 },
       { size: 1416, price: 232 },
@@ -41,7 +52,7 @@
 
     // Define reasonable ranges for the data (with some padding)
     const xMin = 800,  xMax = 2200;  // For size (sqft)
-    const yMin = 150,  yMax = 450;    // For price
+    const yMin = 150,  yMax = 450;   // For price in thousands
 
     // Define margins for the plot area (to make room for tick labels)
     const margin = { top: 30, right: 30, bottom: 50, left: 60 };
@@ -86,19 +97,17 @@
         let xPos = mapX(tick);
         ctx.font = "12px Arial";
         ctx.textAlign = "center";
-        ctx.textBaseline = "top"; // Use top so that the y value marks the top of the text
-        // Place the label 5 pixels below the tick mark
+        ctx.textBaseline = "top"; 
         ctx.fillStyle = "white";
         ctx.fillText(tick, xPos, canvas.height - margin.bottom + 5);
       }
       
-      // Y-axis ticks (Price): Draw tick marks every 50 units.
+      // Y-axis ticks (Price in thousands): Draw tick marks every 50 units.
       for (let tick = yMin; tick <= yMax; tick += 50) {
         let yPos = mapY(tick);
         ctx.font = "12px Arial";
         ctx.textAlign = "right";
-        ctx.textBaseline = "middle"; // Center the text vertically relative to the tick
-        // Place the label 10 pixels to the left of the axis
+        ctx.textBaseline = "middle";
         ctx.fillStyle = "white";
         ctx.fillText(tick, margin.left - 10, yPos);
       }
@@ -145,7 +154,11 @@
     }
 
     function formatNum(num) {
-      return num < 0 ? Math.floor(Math.abs(num) * 100) * -1 / 100 : num.toFixed(10);
+      // Adjust to prevent too many decimals; ensure negative sign is handled.
+      if (num < 0) {
+        return (Math.floor(Math.abs(num) * 100) * -1) / 100;
+      }
+      return num.toFixed(10);
     }
 
     function getMandB(points) {
@@ -160,7 +173,8 @@
     function drawLine() {
       const points = getPoints();
       let { m, b } = getMandB(points);
-      // Use the x-range of our data for drawing the line.
+
+      // Use the x-range of our data for drawing the line
       const x1_orig = xMin;
       const y1_orig = m * x1_orig + b;
       const x2_orig = xMax;
@@ -185,10 +199,10 @@
       ctx.font = "14px Monaco";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      // X-axis label: "Size (sqft)" centered below the x-axis.
+      // X-axis label
       ctx.fillText("Size (sqft)", (canvas.width - margin.left - margin.right) / 2 + margin.left, canvas.height - margin.bottom + 30);
       
-      // Y-axis label: "Price" rotated along the left side.
+      // Y-axis label
       ctx.save();
       ctx.translate(15, (canvas.height - margin.top - margin.bottom) / 2 + margin.top);
       ctx.rotate(-Math.PI / 2);
@@ -219,6 +233,31 @@
       const price = yMin + ((canvas.height - margin.bottom - clickY) / (canvas.height - margin.top - margin.bottom)) * (yMax - yMin);
       housingData.push({ size, price });
       redraw();
+    });
+
+    // Get references to the input elements for estimating price
+    const sqftInput = document.getElementById('sqftInput');
+    const estimateButton = document.getElementById('estimateButton');
+    const estimateOutput = document.getElementById('estimateOutput');
+
+    // When the user clicks "Estimate Price"
+    estimateButton.addEventListener('click', () => {
+      const sqftValue = Number(sqftInput.value);
+      if (isNaN(sqftValue) || sqftValue <= 0) {
+        estimateOutput.textContent = "Please enter a valid positive number for sqft.";
+        return;
+      }
+
+      // Calculate predicted price from the current data
+      const points = getPoints();
+      let { m, b } = getMandB(points);
+
+      // Price in thousands
+      const predictedPriceThousands = m * sqftValue + b;
+      // Convert to a more readable string, optionally limit decimals
+      const predictedPriceStr = predictedPriceThousands.toFixed(2);
+
+      estimateOutput.textContent = `Estimated Price: $${predictedPriceStr}k`;
     });
   </script>
 </body>
