@@ -14,8 +14,11 @@
     (Here, x = size in sqft, y = price in thousands of dollars)
   -->
   <meta charset="UTF-8">
-  <title>Housing Data Plot with Ticks and Axes</title>
+  <title>Ordinary Least Squares</title>
   <style>
+    .body {
+      font-family: 'Trebuchet MS', sans-serif;
+    }
     canvas {
       background-color: rgb(33, 33, 33); 
       display: block;
@@ -25,7 +28,72 @@
     .input-container {
       text-align: center;
       margin-top: 20px;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
     }
+    input[type=number], select {
+      width: 300px;
+      padding: 12px 20px;
+      margin: 8px 0;
+      display: inline-block;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 18px;
+    }
+    
+    input[type=submit] {
+      width: 100%;
+      background-color: #4CAF50;
+      color: white;
+      padding: 14px 20px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    input[type=submit]:hover {
+      background-color: #45a049;
+    }
+
+    .button {
+      background-color: rgb(225, 225, 225); 
+      color: rgb(94, 94, 94); 
+      border: none;
+      padding: 15px 32px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 18px;
+      margin: 4px 15px;
+      cursor: pointer;
+      height: 40px;
+      width: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px; -moz-border-radius: 4px; -webkit-border-radius: 4px;
+    }
+
+    .button:hover {
+      background-color: rgb(193, 193, 193); 
+    }
+
+    .output-container {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .output-container p {
+      font-size: 18px;
+      font-family: 'Trebuchet MS', sans-serif;
+    }
+
   </style>
 </head>
 <body>
@@ -34,7 +102,9 @@
   <!-- The text input and button for entering square footage and estimating price -->
   <div class="input-container">
     <input type="number" id="sqftInput" placeholder="Enter sqft" />
-    <button id="estimateButton">Estimate Price</button>
+    <button id="estimateButton" class="button">Estimate Price</button>
+  </div>
+  <div class="output-container">
     <p id="estimateOutput"></p>
   </div>
 
@@ -255,9 +325,9 @@
       // Price in thousands
       const predictedPriceThousands = m * sqftValue + b;
       // Convert to a more readable string, optionally limit decimals
-      const predictedPriceStr = predictedPriceThousands.toFixed(2);
+      const predictedPriceStr = Math.floor(predictedPriceThousands);
 
-      estimateOutput.textContent = `Estimated Price: $${predictedPriceStr}k`;
+      estimateOutput.textContent = `Estimated Price: $${predictedPriceStr},000`;
     });
   </script>
 </body>
