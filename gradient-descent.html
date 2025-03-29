@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Housing Data Plot with Ticks and Axes</title>
+  <style>
+    canvas {
+      background-color: rgb(33, 33, 33); 
+      display: block;
+      margin: 20px auto; 
+      border: 1px solid #555;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="plotCanvas" width="700" height="500"></canvas>
+  <script>
+    const canvas = document.getElementById('plotCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Housing data: size in sqft (x) and price (y)
+    let housingData = [
+      { size: 2104, price: 400, bedrooms: 3 },
+      { size: 1416, price: 232, bedrooms: 2 },
+      { size: 1534, price: 315, bedrooms: 3 },
+      { size: 852,  price: 178, bedrooms: 2 }
+    ];
+
+    // Define reasonable ranges for the data (with some padding)
+    const xMin = 800,  xMax = 2200;  // For size (sqft)
+    const yMin = 150,  yMax = 450;    // For price
+
+    // Define margins for the plot area (to make room for tick labels)
+    const margin = { top: 30, right: 30, bottom: 50, left: 60 };
+
+    // Mapping functions to convert data values to canvas coordinates within the plot area
+    function mapX(x) {
+      return margin.left + ((x - xMin) / (xMax - xMin)) * (canvas.width - margin.left - margin.right);
+    }
+
+    function mapY(y) {
+      return canvas.height - margin.bottom - ((y - yMin) / (yMax - yMin)) * (canvas.height - margin.top - margin.bottom);
+    }
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Draw the x and y axes
+    function drawAxes() {
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 1;
+      // X-axis
+      ctx.beginPath();
+      ctx.moveTo(margin.left, canvas.height - margin.bottom);
+      ctx.lineTo(canvas.width - margin.right, canvas.height - margin.bottom);
+      ctx.stroke();
+      
+      // Y-axis
+      ctx.beginPath();
+      ctx.moveTo(margin.left, margin.top);
+      ctx.lineTo(margin.left, canvas.height - margin.bottom);
+      ctx.stroke();
+    }
+
+    // Draw tick marks and numeric labels along the axes.
+    function drawTicks() {
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 1;
+      
+      // X-axis ticks (Size): Draw tick marks every 200 sqft.
+      for (let tick = xMin; tick <= xMax; tick += 200) {
+        let xPos = mapX(tick);
+        ctx.font = "12px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top"; // Use top so that the y value marks the top of the text
+        // Place the label 5 pixels below the tick mark
+        ctx.fillStyle = "white";
+        ctx.fillText(tick, xPos, canvas.height - margin.bottom + 5);
+      }
+      
+      // Y-axis ticks (Price): Draw tick marks every 50 units.
+      for (let tick = yMin; tick <= yMax; tick += 50) {
+        let yPos = mapY(tick);
+        ctx.font = "12px Arial";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle"; // Center the text vertically relative to the tick
+        // Place the label 10 pixels to the left of the axis
+        ctx.fillStyle = "white";
+        ctx.fillText(tick, margin.left - 10, yPos);
+      }
+    }
+
+    // Plot each housing data point by mapping its size and price to canvas coordinates.
+    function plotData() {
+      ctx.fillStyle = 'white';
+      housingData.forEach(point => {
+        const canvasX = mapX(point.size);
+        const canvasY = mapY(point.price);
+        ctx.beginPath();
+        ctx.arc(canvasX, canvasY, 5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    // Helper: convert housingData to an array with generic x and y keys (for regression)
+    function getPoints() {
+      return housingData.map(d => ({ x: d.size, y: d.price }));
+    }
+
+    // Functions to compute averages and sums needed for the regression line.
+    function xAvg(points) {
+      return points.reduce((sum, pt) => sum + pt.x, 0) / points.length;
+    }
+
+    function yAvg(points) {
+      return points.reduce((sum, pt) => sum + pt.y, 0) / points.length;
+    }
+
+    function xyAvg(points) {
+      return points.reduce((sum, pt) => sum + (pt.x * pt.y), 0) / points.length;
+    }
+
+    function xSqAvg(points) {
+      return points.reduce((sum, pt) => sum + (pt.x ** 2), 0) / points.length;
+    }
+
+    function getM(points, xAverage, yAverage) {
+      let xyAverage = xyAvg(points);
+      let xSquaredAverage = xSqAvg(points);
+      return ((xAverage * yAverage) - xyAverage) / ((xAverage ** 2) - xSquaredAverage);
+    }
+
+    function formatNum(num) {
+      return num < 0 ? Math.floor(Math.abs(num) * 100) * -1 / 100 : num.toFixed(10);
+    }
+
+    function getMandB(points) {
+      let xAverage = xAvg(points);
+      let yAverage = yAvg(points);
+      let m = getM(points, xAverage, yAverage);
+      let b = yAverage - (m * xAverage);
+      return { m: Number(formatNum(m)), b: Number(formatNum(b)) };
+    }
+
+    // Draw the best-fit regression line. The line is calculated in data space and then mapped to canvas coordinates.
+    function drawLine() {
+      const points = getPoints();
+      let { m, b } = getMandB(points);
+      // Use the x-range of our data for drawing the line.
+      const x1_orig = xMin;
+      const y1_orig = m * x1_orig + b;
+      const x2_orig = xMax;
+      const y2_orig = m * x2_orig + b;
+
+      // Map these endpoints to canvas coordinates.
+      const canvasX1 = mapX(x1_orig);
+      const canvasY1 = mapY(y1_orig);
+      const canvasX2 = mapX(x2_orig);
+      const canvasY2 = mapY(y2_orig);
+
+      ctx.beginPath();
+      ctx.moveTo(canvasX1, canvasY1);
+      ctx.lineTo(canvasX2, canvasY2);
+      ctx.strokeStyle = 'green';
+      ctx.stroke();
+    }
+
+    // Draw axis labels on the canvas.
+    function drawLabels() {
+      ctx.fillStyle = "yellow";
+      ctx.font = "14px Monaco";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      // X-axis label: "Size (sqft)" centered below the x-axis.
+      ctx.fillText("Size (sqft)", (canvas.width - margin.left - margin.right) / 2 + margin.left, canvas.height - margin.bottom + 30);
+      
+      // Y-axis label: "Price" rotated along the left side.
+      ctx.save();
+      ctx.translate(15, (canvas.height - margin.top - margin.bottom) / 2 + margin.top);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText("Price in Thousands", 0, 0);
+      ctx.restore();
+    }
+
+    // Redraw all elements: axes, ticks, data points, regression line, and labels.
+    function redraw() {
+      clearCanvas();
+      drawAxes();
+      drawTicks();
+      plotData();
+      drawLine();
+      drawLabels();
+    }
+
+    // Initial plot
+    redraw();
+
+    // On click, add a new point by converting the click position back to data values.
+    canvas.addEventListener('click', function(event) {
+      const rect = canvas.getBoundingClientRect();
+      const clickX = event.clientX - rect.left;
+      const clickY = event.clientY - rect.top;
+      // Convert click coordinates from the plot area back into data values.
+      const size = xMin + ((clickX - margin.left) / (canvas.width - margin.left - margin.right)) * (xMax - xMin);
+      const price = yMin + ((canvas.height - margin.bottom - clickY) / (canvas.height - margin.top - margin.bottom)) * (yMax - yMin);
+      housingData.push({ size, price });
+      redraw();
+    });
+  </script>
+</body>
+</html>
